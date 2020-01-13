@@ -24,9 +24,11 @@ Usage: desknamer [OPTIONS]
 desknamer.sh monitors your open desktops and renames them according to what's inside.
 
 optional args:
-  -a, --all           print all application categories found on your machine
-  -n, --norecursive   don't inspect windows recursively
-  -h, --help          show help
+  -a, --all             print all application categories found on your machine
+  -n, --norecursive     don't inspect windows recursively
+  -s, --search PROGRAM  find .desktop files matching *program*.desktop
+  -g, --get PROGRAM     get categories for given program
+  -h, --help            show help
 ```
 
 Since `desknamer` is designed to be used as a daemon, you'll want to run it in the background like so:

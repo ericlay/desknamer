@@ -10,8 +10,41 @@ GREEN='\e[32m'
 RED='\e[31m'
 R='\e[0m'
 
-getSystemCategories() {	
-	menuItems="$(find /usr/share/applications /usr/local/share/applications ~/.local/share/applications -name *.desktop)"
+searchApplications() {
+	find -L /usr/share/applications /usr/local/share/applications ~/.local/share/applications -iname "$1".desktop 2>/dev/null | head -1
+}
+
+printApplications() {
+	find -L /usr/share/applications /usr/local/share/applications ~/.local/share/applications -iname *.desktop 2>/dev/null
+}
+
+getCategory() {
+	local application="$1"
+	menuItem="$(searchApplications "$application")"
+	if [ "$menuItem" != "" ]; then
+		categories="$(grep -P '^Categories=' "$menuItem" | cut -d '=' -f 2)"
+		echo "$categories"
+	fi
+}
+
+getCategories() {
+	local pid="$1"
+
+	local comm="$(cat "/proc/$pid/comm" 2>/dev/null | tr '\0' '\n')"
+	[ "${#comm}" -eq 0 ] && return
+
+	local children="$(ps --no-headers --ppid "$pid" 2>/dev/null | awk '{print $1}')"
+
+	getCategory "$comm"
+	((recursive)) && for childPid in $children; do
+		local childComm="$(cat "/proc/$childPid/comm" 2>/dev/null | tr '\0' '\n')"
+		[ "${#childComm}" -gt 0 ] && getCategory "$childComm"
+		getCategories "$childPid"
+	done
+}
+
+getSystemCategories() {
+	menuItems="$(searchApplications)"
 
 	for menuItem in $menuItems; do
 		categories="$(grep -P '^Categories=' "$menuItem" | cut -d '=' -f 2)"
@@ -22,26 +55,6 @@ getSystemCategories() {
 	done
 
 	echo -e "$everyCategory" | sort -u
-}
-
-getCategories() {	
-	local pid="$1"
-	[ "$pid" == "" -o "$pid" == " " ] && return
-
-	comm="$(cat "/proc/$pid/comm" 2>/dev/null | tr '\0' '\n')"
-	[ "$comm" == "" ] && return
-
-	menuItem="$(find /usr/share/applications /usr/local/share/applications ~/.local/share/applications -iname "$comm".desktop | head -1)"
-
-	if [ "$menuItem" != "" ]; then
-		categories="$(grep -P '^Categories=' "$menuItem" | cut -d '=' -f 2)"
-		echo "$categories"
-	fi
-
-	children="$(ps --no-headers --ppid "$pid" 2>/dev/null | awk '{print $1}')"
-	((recursive)) && for childPID in $children; do
-		getCategories "$childPID"
-	done
 }
 
 renameDesktop() {
@@ -66,7 +79,7 @@ renameDesktop() {
 			# get node's pid
 			pid=$(xprop -id "$node" _NET_WM_PID 2>/dev/null | awk '{print $3}')
 			if [ "$pid" != "" -a "$pid" != " " ]; then
-				children+="$(pstree -AT "$pid")"
+				children+="$(pstree -AT "$pid")\n"
 				desktopCategories+="$(getCategories "$pid")"
 			fi
 
@@ -89,7 +102,7 @@ renameDesktop() {
 			*Audio*|*Music*)	name="" ;;
 			*Chat*|*InstantMessaging*|*IRCClient*)
 						name="" ;;
-			*Email*)		name="" ;;
+			*Email*)		name="" ;;
 			*Archiving*)		name="" ;;
 			*Player*)		name="" ;;
 			*Calculator*)		name="" ;;
@@ -118,6 +131,7 @@ renameDesktop() {
 			*freecad*) name="" ;;
 			*firefox*) name="" ;;
 			*weechat*) name="" ;;
+			*calibre*) name=""
 		esac
 
 		# fallback names
@@ -163,8 +177,8 @@ flag_h=0
 recursive=1
 mode="monitor"
 
-OPTS="han"	# the colon means it requires a value
-LONGOPTS="help,all,norecursive"
+OPTS="hans:g:"	# the colon means it requires a value
+LONGOPTS="help,all,norecursive,search,get"
 
 parsed=$(getopt --options=$OPTS --longoptions=$LONGOPTS -- "$@")
 eval set -- "${parsed[@]}"
@@ -179,6 +193,18 @@ while true; do
 		-a|--all)
 			mode="printAll"
 			shift
+			;;
+
+		-s|--search)
+			mode="search"
+			application="$2"
+			shift 2
+			;;
+
+		-g|--get)
+			mode="get"
+			application="$2"
+			shift 2
 			;;
 
 		-n|--norecursive)
@@ -204,9 +230,11 @@ Usage: desknamer [OPTIONS]
 desknamer.sh monitors your open desktops and renames them according to what's inside.
 
 optional args:
-  -a, --all           print all application categories found on your machine
-  -n, --norecursive   don't inspect windows recursively
-  -h, --help          show help"
+  -a, --all             print all application categories found on your machine
+  -n, --norecursive     don't inspect windows recursively
+  -s, --search PROGRAM  find .desktop files matching *program*.desktop
+  -g, --get PROGRAM     get categories for given program
+  -h, --help            show help"
 
 if ((flag_h)); then
 	printf '%s\n' "$HELP"
@@ -214,6 +242,8 @@ if ((flag_h)); then
 fi
 
 case "$mode" in
-	printAll) getSystemCategories ;;
+	printAll) printApplications ;;
 	monitor) monitor ;;
+	search) find -L /usr/share/applications /usr/local/share/applications ~/.local/share/applications -iname "*$application"*.desktop 2>/dev/null ;;
+	get) getCategory "$application" ;;
 esac
