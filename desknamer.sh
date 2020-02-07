@@ -11,16 +11,26 @@ RED='\e[31m'
 R='\e[0m'
 
 searchApplications() {
-	find -L /usr/share/applications /usr/local/share/applications ~/.local/share/applications -iname "$1".desktop 2>/dev/null | head -1
+	found="$(find -L /usr/share/applications /usr/local/share/applications ~/.local/share/applications -iname "$1".desktop 2>/dev/null | head -1)"
+	[ "$found" = "" ] && found="$(find -L /usr/share/applications /usr/local/share/applications ~/.local/share/applications -iname *"$1".desktop 2>/dev/null | head -1)"
+	[ "$found" = "" ] && found="$(find -L /usr/share/applications /usr/local/share/applications ~/.local/share/applications -iname *"$1"*.desktop 2>/dev/null | head -1)"
+	echo "$found"
 }
 
-printApplications() {
-	find -L /usr/share/applications /usr/local/share/applications ~/.local/share/applications -iname *.desktop 2>/dev/null
+getAllApplications() {
+	local found="$(find -L /usr/share/applications /usr/local/share/applications ~/.local/share/applications -iname *.desktop 2>/dev/null)"
+	for application in $found; do
+		echo "$application"
+	done
 }
 
 getCategory() {
 	local application="$1"
-	menuItem="$(searchApplications "$application")"
+	if [[ $application =~ '/' ]]; then
+		menuItem="$application"
+	else
+		menuItem="$(searchApplications "$application")"
+	fi
 	if [ "$menuItem" != "" ]; then
 		categories="$(grep -P '^Categories=' "$menuItem" | cut -d '=' -f 2)"
 		echo "$categories"
@@ -43,18 +53,8 @@ getCategories() {
 	done
 }
 
-getSystemCategories() {
-	menuItems="$(searchApplications)"
-
-	for menuItem in $menuItems; do
-		categories="$(grep -P '^Categories=' "$menuItem" | cut -d '=' -f 2)"
-		IFS=';'
-		for category in $categories; do
-			everyCategory+="$category\n"
-		done
-	done
-
-	echo -e "$everyCategory" | sort -u
+getAllCategories() {
+	grep -P '^Categories=' $(find -L /usr/share/applications /usr/local/share/applications ~/.local/share/applications -iname *.desktop 2>/dev/null) | cut -d '=' -f 2 | tr ';' '\n' | sort -u
 }
 
 renameDesktop() {
@@ -83,21 +83,32 @@ renameDesktop() {
 				desktopCategories+="$(getCategories "$pid")"
 			fi
 
-			echo " -- Node: $node:$pid"
+			echo " -- Node, pid: $node, $pid"
 		done
 		echo -e " -- All Processes:\n$children"
-		echo -e " -- All Categories:\n$desktopCategories"
+		echo -e " -- All Categories:\n$desktopCategories\n"
 
 		name=""
+
+		# if program has no categories or missing one, add them here
+		case "$children" in
+			*firefox*) desktopCategories+="firefox" ;;
+			*weechat*) desktopCategories+="Chat" ;;
+			*calibre*) desktopCategories+="Viewer" ;;
+			*soffice*) desktopCategories+="Office" ;;
+		esac
 
 		# name desktop based on found categories
 		# stops at first match
 		case "$desktopCategories" in
+			*firefox*)		name="" ;;
 			*WebBrowser*)		name="" ;;
 			*Documentation*|*Office*|*Spreadsheet*|*WordProcessor*)
 						name="" ;;
+			*Viewer*)		name="" ;;
 			*Game*|*game*)
 						name="" ;;
+			*Engineering*)		name="" ;;
 			*Graphics*)		name="" ;;
 			*Audio*|*Music*)	name="" ;;
 			*Chat*|*InstantMessaging*|*IRCClient*)
@@ -123,15 +134,6 @@ renameDesktop() {
 						name="" ;;
 			*IDE*|*TextEditor*) 	name="" ;;
 			*TerminalEmulator*)	name="" ;;
-		esac
-
-		# name desktop depending on child processes
-		# stops at first match
-		case "$children" in
-			*freecad*) name="" ;;
-			*firefox*) name="" ;;
-			*weechat*) name="" ;;
-			*calibre*) name=""
 		esac
 
 		# fallback names
@@ -177,8 +179,8 @@ flag_h=0
 recursive=1
 mode="monitor"
 
-OPTS="hans:g:"	# the colon means it requires a value
-LONGOPTS="help,all,norecursive,search,get"
+OPTS="hacns:g:"	# the colon means it requires a value
+LONGOPTS="help,all,categories,norecursive,search,get"
 
 parsed=$(getopt --options=$OPTS --longoptions=$LONGOPTS -- "$@")
 eval set -- "${parsed[@]}"
@@ -191,7 +193,12 @@ while true; do
 			;;
 
 		-a|--all)
-			mode="printAll"
+			mode="getAllApplications"
+			shift
+			;;
+
+		-c|--categories)
+			mode="getAllCategories"
 			shift
 			;;
 
@@ -230,7 +237,8 @@ Usage: desknamer [OPTIONS]
 desknamer.sh monitors your open desktops and renames them according to what's inside.
 
 optional args:
-  -a, --all             print all application categories found on your machine
+  -a, --all             print all applications found on your machine
+  -c, --categories      print all categories found on your machine
   -n, --norecursive     don't inspect windows recursively
   -s, --search PROGRAM  find .desktop files matching *program*.desktop
   -g, --get PROGRAM     get categories for given program
@@ -242,7 +250,8 @@ if ((flag_h)); then
 fi
 
 case "$mode" in
-	printAll) printApplications ;;
+	getAllApplications) getAllApplications ;;
+	getAllCategories) getAllCategories ;;
 	monitor) monitor ;;
 	search) find -L /usr/share/applications /usr/local/share/applications ~/.local/share/applications -iname "*$application"*.desktop 2>/dev/null ;;
 	get) getCategory "$application" ;;
