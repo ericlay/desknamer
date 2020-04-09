@@ -96,6 +96,7 @@ renameDesktop() {
 			*weechat*) desktopCategories+="Chat" ;;
 			*calibre*) desktopCategories+="Viewer" ;;
 			*soffice*) desktopCategories+="Office" ;;
+			*micro*) desktopCategories+="Office" ;;
 		esac
 
 		# name desktop based on found categories
@@ -138,8 +139,21 @@ renameDesktop() {
 
 		# fallback names
 		[ "${#name}" -eq 0 ] && [ "${#desktopCategories}" -gt 0  -o "${#children}" -gt 0 ] && name=""	# no recognized applications
-		[ "$name" == "" ] && name="$desktopIndex"	# no applications
-
+			# no applications
+		if [ "$name" == "" ] ; then
+			case "$desktopIndex" in
+				1 )    name="" ;;
+				2 )    name="" ;;
+				3 )    name="" ;;
+				4 )    name="" ;;
+				5 )    name="" ;;
+				6 )    name="" ;;
+				7 )    name="" ;;
+				8 )    name="" ;;
+				9 )    name="" ;;
+				0 )    name="" ;;
+			esac
+		fi
 		echo -e " -- New Name: ${BLUE}$name ${R}\n"
 		bspc desktop "$desktopID" --rename "$name"
 	done
