@@ -64,6 +64,19 @@ getAllCategories() {
 	grep -P '^Categories=' $(find -L /usr/share/applications /usr/local/share/applications ~/.local/share/applications -iname *.desktop 2>/dev/null) | cut -d '=' -f 2 | tr ';' '\n' | sort -u
 }
 
+# TODO work in progress below
+## Attempt to programmatically get and set default desktop names 
+### in effort to respect custom desktop names once desktop is empty
+getDefaults() {
+	mapfile -d ' ' -n 10 indexArray < <( bspc query -m --desktops | grep -n "$desktopID" | cut -d ':' -f 1 )
+	mapfile -d ' ' -n 10 defaultNames < <( bspc query --names -D )
+	for index in ${!indexArray[*]}; do
+		desknameDefaults[index]=${defaultNames[$index]}
+	done
+	echo -e "$indexArray"
+	echo -e "$defaultNames"
+}
+
 renameDesktop() {
 	local desktopIDs="$@"
 	for desktopID in ${desktopIDs[@]}; do
@@ -147,7 +160,7 @@ renameDesktop() {
 
 		# fallback names
 		[ "${#name}" -eq 0 ] && [ "${#desktopCategories}" -gt 0  -o "${#children}" -gt 0 ] && name=""	# no recognized applications
-		[ -z "$name" ] && name=${desknameDefaults["$desktopIndex"]} && echo -e "This desktop is ${desknameDefaults["$desktopIndex"]}"	# no applications
+		[ -z "$name" ] && name=${desknameDefaults["$desktopIndex"]} && echo "This desktop is ${desknameDefaults["$desktopIndex"]}"	# no applications
 
 		echo -e " -- New Name: ${BLUE}$name ${R}\n"
 		bspc desktop "$desktopID" --rename "$name"
@@ -167,19 +180,6 @@ renameAll() {
 	for monitorID in $(bspc query -M); do
 		renameMonitor "$monitorID"
 	done
-}
-
-# TODO work in progress below
-## Attempt to programmatically get and set default desktop names 
-### in effort to respect custom desktop names once desktop is empty
-getDefaults() {
-	mapfile -d ' ' -n 10 indexArray < <( bspc query -m --desktops | grep -n "$desktopID" | cut -d ':' -f 1 )
-	mapfile -d ' ' -n 10 defaultNames < <( bspc query --names -D )
-	for index in ${!indexArray[*]}; do
-		desknameDefaults[index]=${defaultNames[$index]}
-	done
-	echo -e "$indexArray"
-	echo -e "$defaultNames"
 }
 
 #Get defaults before monitoring
