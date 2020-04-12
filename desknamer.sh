@@ -5,6 +5,12 @@
 # you must run 'bspc monitor -d 1 2 3 4 5...' on that monitor to give it
 # the desired number of desktops.
 
+#================================================
+#################	  TODO		#################
+#     !!!  FINISH getDefaults function  !!!  
+#################################################
+#================================================
+
 BLUE='\e[34m'
 GREEN='\e[32m'
 RED='\e[31m'
@@ -97,6 +103,7 @@ renameDesktop() {
 			*calibre*) desktopCategories+="Viewer" ;;
 			*soffice*) desktopCategories+="Office" ;;
 			*micro*) desktopCategories+="Office" ;;
+			*urxvt*) desktopCategories+="TerminalEmulator" ;;
 		esac
 
 		# name desktop based on found categories
@@ -120,9 +127,9 @@ renameDesktop() {
 			*Calculator*)		name="" ;;
 			*Calendar*)		name="" ;;
 			*Clock*)		name="" ;;
-			*ContactManagement*)	name="﯉" ;;
+			*ContactManagement*)	name="" ;;
 			*Database*)		name="" ;;
-			*Dictionary*)		name="﬜" ;;
+			*Dictionary*)		name="" ;;
 			*DiscBurning*)		name="" ;;
 			*Math*)			name="" ;;
 			*PackageManager*)	name="" ;;
@@ -139,21 +146,8 @@ renameDesktop() {
 
 		# fallback names
 		[ "${#name}" -eq 0 ] && [ "${#desktopCategories}" -gt 0  -o "${#children}" -gt 0 ] && name=""	# no recognized applications
-			# no applications
-		if [ "$name" == "" ] ; then
-			case "$desktopIndex" in
-				1 )    name="" ;;
-				2 )    name="" ;;
-				3 )    name="" ;;
-				4 )    name="" ;;
-				5 )    name="" ;;
-				6 )    name="" ;;
-				7 )    name="" ;;
-				8 )    name="" ;;
-				9 )    name="" ;;
-				0 )    name="" ;;
-			esac
-		fi
+		[ -z "$name" ] && name=${desknameDefaults["$desktopIndex"]} 	# no applications
+
 		echo -e " -- New Name: ${BLUE}$name ${R}\n"
 		bspc desktop "$desktopID" --rename "$name"
 	done
@@ -173,6 +167,24 @@ renameAll() {
 		renameMonitor "$monitorID"
 	done
 }
+
+# TODO work in progress below
+## Attempt to programmatically get and set default desktop names 
+### in effort to respect custom desktop names once desktop is empty
+getDefaults() {
+	mapfile -d ' ' -n 10 indexArray < <( bspc query -m --desktops | grep -n "$desktopID" | cut -d ':' -f 1 )
+	mapfile -d ' ' -n 10 defaultNames < <( bspc query --names -D )
+	for index in ${!indexArray[*]}; do
+		desknameDefaults[index]=${defaultNames[$index]}
+	done
+	echo -e "$indexArray"
+	echo -e "$defaultNames"
+}
+
+#Get defaults before monitoring
+declare -A desknameDefaults
+getDefaults
+echo -e "${desknameDefaults[@]}"
 
 monitor() {
 	bspc subscribe monitor_add monitor_remove monitor_swap desktop_add desktop_remove desktop_swap desktop_transfer node_add node_remove node_swap node_transfer | while read -r line; do	# trigger on any bspwm event
