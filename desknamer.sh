@@ -8,6 +8,7 @@
 #================================================
 #################	  TODO		#################
 #     !!!  FINISH getDefaults function  !!!  
+#	     WIP: notice all the exra echo's
 #################################################
 #================================================
 
@@ -146,7 +147,7 @@ renameDesktop() {
 
 		# fallback names
 		[ "${#name}" -eq 0 ] && [ "${#desktopCategories}" -gt 0  -o "${#children}" -gt 0 ] && name=""	# no recognized applications
-		[ -z "$name" ] && name=${desknameDefaults["$desktopIndex"]} 	# no applications
+		[ -z "$name" ] && name=${desknameDefaults["$desktopIndex"]} && echo -e "This desktop is ${desknameDefaults["$desktopIndex"]}"	# no applications
 
 		echo -e " -- New Name: ${BLUE}$name ${R}\n"
 		bspc desktop "$desktopID" --rename "$name"
