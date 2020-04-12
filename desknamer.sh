@@ -155,7 +155,7 @@ renameDesktop() {
 
 		# fallback names
 		[ "${#name}" -eq 0 ] && [ "${#desktopCategories}" -gt 0  -o "${#children}" -gt 0 ] && name=""	# no recognized applications
-		[ -z "$name" ] && name=${desknameDefaults["$desktopIndex"]} && echo "This desktop is $desktopIndex  ${desknameDefaults["$desktopIndex"]}"	# no applications
+		[ -z "$name" ] && name=${desknameDefaults["$desktopIndex"]}	# no applications
 
 		echo -e " -- New Name: ${BLUE}$name ${R}\n"
 		bspc desktop "$desktopID" --rename "$name"
