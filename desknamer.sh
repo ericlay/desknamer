@@ -5,13 +5,6 @@
 # you must run 'bspc monitor -d 1 2 3 4 5...' on that monitor to give it
 # the desired number of desktops.
 
-#================================================
-#################	  TODO		#################
-#     !!!  FINISH getDefaults function  !!!  
-#	     WIP: notice all the exra echo's
-#################################################
-#================================================
-
 BLUE='\e[34m'
 GREEN='\e[32m'
 RED='\e[31m'
@@ -64,17 +57,19 @@ getAllCategories() {
 	grep -P '^Categories=' $(find -L /usr/share/applications /usr/local/share/applications ~/.local/share/applications -iname *.desktop 2>/dev/null) | cut -d '=' -f 2 | tr ';' '\n' | sort -u
 }
 
-# TODO work in progress below
-## Attempt to programmatically get and set default desktop names 
-### in effort to respect custom desktop names once desktop is empty
 getDefaults() {
-	mapfile -d ' ' -n 10 indexArray < <( bspc query -m --desktops | grep -n "$desktopID" | cut -d ':' -f 1 )
-	mapfile -d ' ' -n 10 defaultNames < <( bspc query --names -D )
-	for index in ${!indexArray[*]}; do
-		desknameDefaults[index]=${defaultNames[$index]}
-	done
-	echo -e "$indexArray"
-	echo -e "$defaultNames"
+	mapfile  -n 10 -t defaultNames < <( bspc query --names -D )
+	desknameDefaults=(\
+	[1]="${defaultNames[@]:0:1}"\
+	[2]="${defaultNames[@]:1:1}"\
+	[3]="${defaultNames[@]:2:1}"\
+	[4]="${defaultNames[@]:3:1}"\
+	[5]="${defaultNames[@]:4:1}"\
+	[6]="${defaultNames[@]:5:1}"\
+	[7]="${defaultNames[@]:6:1}"\
+	[8]="${defaultNames[@]:7:1}"\
+	[9]="${defaultNames[@]:8:1}"\
+	[10]="${defaultNames[@]:9:1}")
 }
 
 renameDesktop() {
@@ -160,7 +155,7 @@ renameDesktop() {
 
 		# fallback names
 		[ "${#name}" -eq 0 ] && [ "${#desktopCategories}" -gt 0  -o "${#children}" -gt 0 ] && name=""	# no recognized applications
-		[ -z "$name" ] && name=${desknameDefaults["$desktopIndex"]} && echo "This desktop is ${desknameDefaults["$desktopIndex"]}"	# no applications
+		[ -z "$name" ] && name=${desknameDefaults["$desktopIndex"]} && echo "This desktop is $desktopIndex  ${desknameDefaults["$desktopIndex"]}"	# no applications
 
 		echo -e " -- New Name: ${BLUE}$name ${R}\n"
 		bspc desktop "$desktopID" --rename "$name"
@@ -183,9 +178,8 @@ renameAll() {
 }
 
 #Get defaults before monitoring
-declare -A desknameDefaults
+declare -a desknameDefaults
 getDefaults
-echo -e "${desknameDefaults[@]}"
 
 monitor() {
 	bspc subscribe monitor_add monitor_remove monitor_swap desktop_add desktop_remove desktop_swap desktop_transfer node_add node_remove node_swap node_transfer | while read -r line; do	# trigger on any bspwm event
