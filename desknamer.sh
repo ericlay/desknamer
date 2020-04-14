@@ -59,17 +59,6 @@ getAllCategories() {
 
 getDefaults() {
 	mapfile  -n 10 -t defaultNames < <( bspc query --names -D )
-	desknameDefaults=(\
-	[1]="${defaultNames[@]:0:1}"\
-	[2]="${defaultNames[@]:1:1}"\
-	[3]="${defaultNames[@]:2:1}"\
-	[4]="${defaultNames[@]:3:1}"\
-	[5]="${defaultNames[@]:4:1}"\
-	[6]="${defaultNames[@]:5:1}"\
-	[7]="${defaultNames[@]:6:1}"\
-	[8]="${defaultNames[@]:7:1}"\
-	[9]="${defaultNames[@]:8:1}"\
-	[10]="${defaultNames[@]:9:1}")
 }
 
 renameDesktop() {
@@ -155,7 +144,7 @@ renameDesktop() {
 
 		# fallback names
 		[ "${#name}" -eq 0 ] && [ "${#desktopCategories}" -gt 0  -o "${#children}" -gt 0 ] && name=""	# no recognized applications
-		[ -z "$name" ] && name=${desknameDefaults["$desktopIndex"]}	# no applications
+		[ -z "$name" ] && name=${defaultNames["$((desktopIndex-1))"]}	# no applications
 
 		echo -e " -- New Name: ${BLUE}$name ${R}\n"
 		bspc desktop "$desktopID" --rename "$name"
