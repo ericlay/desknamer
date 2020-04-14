@@ -58,7 +58,7 @@ getAllCategories() {
 }
 
 getDefaults() {
-	mapfile  -n 10 -t defaultNames < <( bspc query --names -D )
+	mapfile -t defaultNames < <( bspc query --names -D )
 }
 
 renameDesktop() {
@@ -167,7 +167,6 @@ renameAll() {
 }
 
 #Get defaults before monitoring
-declare -a desknameDefaults
 getDefaults
 
 monitor() {
