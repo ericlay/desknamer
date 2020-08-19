@@ -96,12 +96,17 @@ renameDesktop() {
 
 		# if program has no categories or missing one, add them here
 		case "$children" in
-			*firefox*) desktopCategories+="firefox" ;;
+			*MainThread*) desktopCategories+="firefox" ;;
 			*weechat*) desktopCategories+="Chat" ;;
 			*calibre*) desktopCategories+="Viewer" ;;
 			*soffice*) desktopCategories+="Office" ;;
 			*micro*) desktopCategories+="Office" ;;
 			*urxvt*) desktopCategories+="TerminalEmulator" ;;
+			*python3*) desktopCategories+="VirtualMachine" ;;
+			*gvncviewer*) desktopCategories+="VirtualMachine" ;;
+			*steam*) desktopCategories+="Game" ;;
+			*zoom*) desktopCategories+="zoom" ;;
+			*Spotify*) desktopCategories+="spotify" ;;
 		esac
 
 		# name desktop based on found categories
@@ -140,6 +145,9 @@ renameDesktop() {
 						name="" ;;
 			*IDE*|*TextEditor*) 	name="" ;;
 			*TerminalEmulator*)	name="" ;;
+			*VirtualMachine*) name="ﲾ" ;; 
+			*zoom*) name="" ;;
+			*Spotify*) name="" ;;
 		esac
 
 		# fallback names
